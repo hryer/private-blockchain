@@ -15,10 +15,10 @@ const hex2ascii = require('hex2ascii');
 class Block {
 	constructor(data) {
 		this.hash = SHA256(JSON.stringify(data)).toString();;
-		this.height = 0;
+		this.height = data.height ? data.height : 0;
 		this.body = Buffer(JSON.stringify(data)).toString('hex');
 		this.time = new Date().getTime().toString().slice(0, -3);
-		this.previousBlockHash = null;
+		this.previousBlockHash = data.previousBlockHash ? data.previousBlockHash : null;
 	}
 
 	/**

@@ -65,8 +65,8 @@ class Blockchain {
 		let self = this;
 		return new Promise(async (resolve, reject) => {
 			if (self.chain.length > 0) {
-				const prevBlock = await self.getBlockByHeight(self.height);
-				block.previousBlockHash = prevBlock.hash;
+					const prevBlock = await self.getBlockByHeight(self.height);
+					block.previousBlockHash = prevBlock.hash;
 			}
 			block.height = self.chain.length;
 			block.time = new Date().getTime().toString().slice(0, -3);
@@ -79,7 +79,9 @@ class Blockchain {
 			} else {
 				reject(block);
 			}
-		});
+		}).catch(e => {
+      return e;
+    });
 	}
 
 	/**
@@ -120,25 +122,34 @@ class Blockchain {
 	submitStar(address, message, signature, star) {
 		let self = this;
 		return new Promise(async (resolve, reject) => {
-			// default getTime is ms thant slice into -3 it means the unit is second so divide by 60 to get the minute
-			const diffTime = parseInt(new Date().getTime().toString().slice(0, -3)) - parseInt(message.split(':')[1]);
+			const validateChain = self.validateChain();
 
-			if (diffTime / 60 <= 5) {
-				const verified = await bitcoinMessage.verify(message, address, signature);
-
-				if (verified) {
-					const res = self._addBlock({
-						owner: address,
-						star,
-					});
-					resolve(res);
-				} else {
-					reject('not verified');
-				}
+			if (validateChain.length > 0) {
+				resolve(validateChain);
 			} else {
-				reject('signature timeout');
+				// default getTime is ms thant slice into -3 it means the unit is second so divide by 60 to get the minute
+				const diffTime =
+					parseInt(new Date().getTime().toString().slice(0, -3)) - parseInt(message.split(':')[1]);
+				console.log(diffTime / 60);
+				if (diffTime / 60 <= 5) {
+					const verified = await bitcoinMessage.verify(message, address, signature);
+
+					if (verified) {
+						const res = self._addBlock({
+							owner: address,
+							star,
+						});
+						resolve(res);
+					} else {
+						reject('error: You are not verified');
+					}
+				} else {
+					reject('error: message timeout, try again to requestValidation ');
+				}
 			}
-		});
+		}).catch(e => {
+      return e;
+    });
 	}
 
 	/**
@@ -149,7 +160,14 @@ class Blockchain {
 	 */
 	getBlockByHash(hash) {
 		let self = this;
-		return new Promise((resolve, reject) => {});
+		return new Promise((resolve, reject) => {
+			const block = self.chain.filter((b) => b.hash === hash)[0];
+			if (block) {
+				resolve(block);
+			} else {
+				reject(null);
+			}
+		});
 	}
 
 	/**
@@ -159,7 +177,7 @@ class Blockchain {
 	 */
 	getBlockByHeight(height) {
 		let self = this;
-		return new Promise((resolve, reject) => {
+		return new Promise((resolve) => {
 			let block = self.chain.filter((p) => p.height === height)[0];
 			if (block) {
 				resolve(block);
@@ -178,7 +196,20 @@ class Blockchain {
 	getStarsByWalletAddress(address) {
 		let self = this;
 		let stars = [];
-		return new Promise((resolve, reject) => {});
+
+		return new Promise((resolve, reject) => {
+			self.chain.forEach((b) => {
+				const data = JSON.parse(new Buffer(b.body, 'hex').toString('utf8'));
+				if (data.owner === address) {
+					stars.push(data);
+				}
+			});
+			if (stars) {
+				resolve(stars);
+			} else {
+				reject('data not found');
+			}
+		});
 	}
 
 	/**
@@ -190,7 +221,30 @@ class Blockchain {
 	validateChain() {
 		let self = this;
 		let errorLog = [];
-		return new Promise(async (resolve, reject) => {});
+		return new Promise(async (resolve, reject) => {
+			let prevHash = null;
+				self.chain.forEach((block) => {
+					if (block.previousBlockHash !== prevHash) {
+						errorLog.push({
+							prevHash,
+							blockPrevHash: block.previousBlockHash,
+							message: 'error: prevHash and blockPrevHash not valid',
+						});
+					} else {
+						prevHash = block.hash;
+					}
+
+					if (block.validate() === false) {
+						errorLog.push({
+							prevHash,
+							blockPrevHash: block.previousBlockHash,
+							message: "error: data has been modified or data it's not valid",
+						});
+					}
+				});
+
+				resolve(errorLog);
+		}).catch(e => {return e});
 	}
 }
 
