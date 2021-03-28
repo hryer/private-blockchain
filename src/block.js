@@ -13,57 +13,27 @@ const SHA256 = require('crypto-js/sha256');
 const hex2ascii = require('hex2ascii');
 
 class Block {
-	/*
-		As per example on Step 4: Testing Your Applications
-		To check genesis Block the output is something like this :
-		{
-			"hash": "86xafaqfafadfadad",
-			"height": 0,
-			"body": "7basdokasodaoskdosa277d",
-			"time": "155421723",
-			"previousBlockHash": null
-		}
-
-		it's confused me if the constructor can't be customized because the hash in the example never be null it's always have a value right same like example
-    when checking the block number 0?
-
-		if the constructor like this :
-
-			constructor(data){
-        this.hash = null;                                           // Hash of the block
-        this.height = 0;                                            // Block Height (consecutive number of each block)
-        this.body = Buffer(JSON.stringify(data)).toString('hex');   // Will contain the transactions stored in the block, by default it will encode the data
-        this.time = 0;                                              // Timestamp for the Block creation
-        this.previousBlockHash = null;                              // Reference to the previous Block Hash
-      }
-
-    if we call the class like from the boilerplate when creating new block the hash always be null except we didn't call new Block?
-	*/
 	constructor(data) {
-		this.hash = data.hash ? data.hash : null;
-		this.height = data.height ? data.height : 0;
+		this.hash = null;
+		this.height = 0;
 		this.body = Buffer(JSON.stringify(data)).toString('hex');
-		this.time = data.time ? data.time : 0;
-		this.previousBlockHash = data.previousBlockHash ? data.previousBlockHash : null;
+		this.time = 0;
+		this.previousBlockHash = null;
 	}
 
 	/**
 	 *  validate() method will validate if the block has been tampered or not.
-	 *  Been tampered means that someone from outside the application tried to change
-	 *  values in the block data as a consecuence the hash of the block should be different.
-	 *  Steps:
-	 *  1. Return a new promise to allow the method be called asynchronous.
-	 *  2. Save the in auxiliary variable the current hash of the block (`this` represent the block object)
-	 *  3. Recalculate the hash of the entire block (Use SHA256 from crypto-js library)
-	 *  4. Compare if the auxiliary hash value is different from the calculated one.
-	 *  5. Resolve true or false depending if it is valid or not.
-	 *  Note: to access the class values inside a Promise code you need to create an auxiliary value `let self = this;`
 	 */
 	validate() {
 		const self = this;
 		return new Promise((resolve, reject) => {
 			const validHash = self.hash;
+      /*
+        if use self.hash = null, the current value on the class will be null also.
+        Which is making a bug on the future. it's still better using temporary var instead nulling this.hash
+      */
 			const currentData = {
+        hash: null,
 				height: self.height,
 				body: self.body,
 				time: self.time,
@@ -74,7 +44,7 @@ class Block {
 			if (currentHash === validHash) {
 				resolve(true);
 			} else {
-				reject(false);
+				resolve(false);
 			}
 		});
 	}

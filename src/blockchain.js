@@ -52,14 +52,6 @@ class Blockchain {
 	/**
 	 * _addBlock(block) will store a block in the chain
 	 * @param {*} block
-	 * The method will return a Promise that will resolve with the block added
-	 * or reject if an error happen during the execution.
-	 * You will need to check for the height to assign the `previousBlockHash`,
-	 * assign the `timestamp` and the correct `height`...At the end you need to
-	 * create the `block hash` and push the block into the chain array. Don't for get
-	 * to update the `this.height`
-	 * Note: the symbol `_` in the method name indicates in the javascript convention
-	 * that this method is a private method.
 	 */
 	_addBlock(block) {
 		let self = this;
@@ -71,7 +63,7 @@ class Blockchain {
 			block.height = self.chain.length;
 			block.time = new Date().getTime().toString().slice(0, -3);
 			block.hash = SHA256(JSON.stringify(block)).toString();
-			self.chain.push(new BlockClass.Block(block));
+			self.chain.push(block);
 
 			if (self.height !== self.chain.length) {
 				self.height++;
@@ -107,13 +99,6 @@ class Blockchain {
 	 * will allow users to register a new Block with the star object
 	 * into the chain. This method will resolve with the Block added or
 	 * reject with an error.
-	 * Algorithm steps:
-	 * 1. Get the time from the message sent as a parameter example: `parseInt(message.split(':')[1])`
-	 * 2. Get the current time: `let currentTime = parseInt(new Date().getTime().toString().slice(0, -3));`
-	 * 3. Check if the time elapsed is less than 5 minutes
-	 * 4. Veify the message with wallet address and signature: `bitcoinMessage.verify(message, address, signature)`
-	 * 5. Create the block and add it to the chain
-	 * 6. Resolve with the block added.
 	 * @param {*} address
 	 * @param {*} message
 	 * @param {*} signature
@@ -128,17 +113,12 @@ class Blockchain {
 				resolve(validateChain);
 			} else {
 				// default getTime is ms thant slice into -3 it means the unit is second so divide by 60 to get the minute
-				const diffTime =
-					parseInt(new Date().getTime().toString().slice(0, -3)) - parseInt(message.split(':')[1]);
-				console.log(diffTime / 60);
+				const diffTime = parseInt(new Date().getTime().toString().slice(0, -3)) - parseInt(message.split(':')[1]);
 				if (diffTime / 60 <= 5) {
 					const verified = await bitcoinMessage.verify(message, address, signature);
 
 					if (verified) {
-						const res = self._addBlock({
-							owner: address,
-							star,
-						});
+						const res = await self._addBlock(new BlockClass.Block({ owner: address, star }));
 						resolve(res);
 					} else {
 						reject('error: You are not verified');
@@ -178,7 +158,7 @@ class Blockchain {
 	getBlockByHeight(height) {
 		let self = this;
 		return new Promise((resolve) => {
-			let block = self.chain.filter((p) => p.height === height)[0];
+			const block = self.chain.find((p) => p.height === height);
 			if (block) {
 				resolve(block);
 			} else {
@@ -198,8 +178,8 @@ class Blockchain {
 		let stars = [];
 
 		return new Promise((resolve, reject) => {
-			self.chain.forEach((b) => {
-				const data = JSON.parse(new Buffer(b.body, 'hex').toString('utf8'));
+			self.chain.forEach(async b => {
+        const data = await b.getBData();
 				if (data.owner === address) {
 					stars.push(data);
 				}
@@ -214,27 +194,23 @@ class Blockchain {
 
 	/**
 	 * This method will return a Promise that will resolve with the list of errors when validating the chain.
-	 * Steps to validate:
-	 * 1. You should validate each block using `validateBlock`
-	 * 2. Each Block should check the with the previousBlockHash
 	 */
 	validateChain() {
 		let self = this;
 		let errorLog = [];
 		return new Promise(async (resolve, reject) => {
 			let prevHash = null;
-			self.chain.forEach((block) => {
+			self.chain.forEach( async block => {
 				if (block.previousBlockHash !== prevHash) {
 					errorLog.push({
 						prevHash,
 						blockPrevHash: block.previousBlockHash,
 						message: 'error: prevHash and blockPrevHash not valid',
 					});
-				} else {
-					prevHash = block.hash;
 				}
+				prevHash = block.hash;
 
-				if (block.validate() === false) {
+				if(await block.validate() === false) {
 					errorLog.push({
 						prevHash,
 						blockPrevHash: block.previousBlockHash,
