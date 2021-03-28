@@ -65,8 +65,8 @@ class Blockchain {
 		let self = this;
 		return new Promise(async (resolve, reject) => {
 			if (self.chain.length > 0) {
-					const prevBlock = await self.getBlockByHeight(self.height);
-					block.previousBlockHash = prevBlock.hash;
+				const prevBlock = await self.getBlockByHeight(self.height);
+				block.previousBlockHash = prevBlock.hash;
 			}
 			block.height = self.chain.length;
 			block.time = new Date().getTime().toString().slice(0, -3);
@@ -79,9 +79,9 @@ class Blockchain {
 			} else {
 				reject(block);
 			}
-		}).catch(e => {
-      return e;
-    });
+		}).catch((e) => {
+			return e;
+		});
 	}
 
 	/**
@@ -147,9 +147,9 @@ class Blockchain {
 					reject('error: message timeout, try again to requestValidation ');
 				}
 			}
-		}).catch(e => {
-      return e;
-    });
+		}).catch((e) => {
+			return e;
+		});
 	}
 
 	/**
@@ -223,28 +223,30 @@ class Blockchain {
 		let errorLog = [];
 		return new Promise(async (resolve, reject) => {
 			let prevHash = null;
-				self.chain.forEach((block) => {
-					if (block.previousBlockHash !== prevHash) {
-						errorLog.push({
-							prevHash,
-							blockPrevHash: block.previousBlockHash,
-							message: 'error: prevHash and blockPrevHash not valid',
-						});
-					} else {
-						prevHash = block.hash;
-					}
+			self.chain.forEach((block) => {
+				if (block.previousBlockHash !== prevHash) {
+					errorLog.push({
+						prevHash,
+						blockPrevHash: block.previousBlockHash,
+						message: 'error: prevHash and blockPrevHash not valid',
+					});
+				} else {
+					prevHash = block.hash;
+				}
 
-					if (block.validate() === false) {
-						errorLog.push({
-							prevHash,
-							blockPrevHash: block.previousBlockHash,
-							message: "error: data has been modified or data it's not valid",
-						});
-					}
-				});
+				if (block.validate() === false) {
+					errorLog.push({
+						prevHash,
+						blockPrevHash: block.previousBlockHash,
+						message: "error: data has been modified or data it's not valid",
+					});
+				}
+			});
 
-				resolve(errorLog);
-		}).catch(e => {return e});
+			resolve(errorLog);
+		}).catch((e) => {
+			return e;
+		});
 	}
 }
 

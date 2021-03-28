@@ -13,11 +13,37 @@ const SHA256 = require('crypto-js/sha256');
 const hex2ascii = require('hex2ascii');
 
 class Block {
+	/*
+		As per example on Step 4: Testing Your Applications
+		To check genesis Block the output is something like this :
+		{
+			"hash": "86xafaqfafadfadad",
+			"height": 0,
+			"body": "7basdokasodaoskdosa277d",
+			"time": "155421723",
+			"previousBlockHash": null
+		}
+
+		it's confused me if the constructor can't be customized because the hash in the example never be null it's always have a value right same like example
+    when checking the block number 0?
+
+		if the constructor like this :
+
+			constructor(data){
+        this.hash = null;                                           // Hash of the block
+        this.height = 0;                                            // Block Height (consecutive number of each block)
+        this.body = Buffer(JSON.stringify(data)).toString('hex');   // Will contain the transactions stored in the block, by default it will encode the data
+        this.time = 0;                                              // Timestamp for the Block creation
+        this.previousBlockHash = null;                              // Reference to the previous Block Hash
+      }
+
+    if we call the class like from the boilerplate when creating new block the hash always be null except we didn't call new Block?
+	*/
 	constructor(data) {
-		this.hash = SHA256(JSON.stringify(data)).toString();;
+		this.hash = data.hash ? data.hash : null;
 		this.height = data.height ? data.height : 0;
 		this.body = Buffer(JSON.stringify(data)).toString('hex');
-		this.time = new Date().getTime().toString().slice(0, -3);
+		this.time = data.time ? data.time : 0;
 		this.previousBlockHash = data.previousBlockHash ? data.previousBlockHash : null;
 	}
 
@@ -63,7 +89,7 @@ class Block {
 	 *     or Reject with an error.
 	 */
 	getBData() {
-		return (this.height !== 0) ? JSON.parse(hex2ascii(this.body)) : "Error: Genesis Block";
+		return this.height !== 0 ? JSON.parse(hex2ascii(this.body)) : 'Error: Genesis Block';
 		// Getting the encoded data saved in the Block
 		// Decoding the data to retrieve the JSON representation of the object
 		// Parse the data to an object to be retrieve.
